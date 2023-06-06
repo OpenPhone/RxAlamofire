@@ -710,10 +710,12 @@ public extension Reactive where Base: Alamofire.Session {
         request = try createRequest(self.base)
         observer.on(.next(request))
         request.responseWith(completionHandler: { response in
-          if let error = response.error {
-            observer.on(.error(error))
-          } else {
-            observer.on(.completed)
+          DispatchQueue.main.async {
+            if let error = response.error {
+              observer.on(.error(error))
+            } else {
+              observer.on(.completed)
+            } 
           }
         })
 
