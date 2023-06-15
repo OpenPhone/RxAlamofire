@@ -646,7 +646,7 @@ public func download(resumeData: Data,
 extension Alamofire.Session: ReactiveCompatible {}
 
 protocol RxAlamofireRequest {
-  func responseWith(completionHandler: @escaping (RxAlamofireResponse) -> Void)
+  func responseWith(queue: DispatchQueue, completionHandler: @escaping (RxAlamofireResponse) -> Void)
   func resume() -> Self
   func cancel() -> Self
 }
@@ -678,23 +678,23 @@ extension DownloadResponse: RxAlamofireResponse {
 }
 
 extension DataRequest: RxAlamofireRequest {
-  func responseWith(completionHandler: @escaping (RxAlamofireResponse) -> Void) {
-    response { response in
+  func responseWith(queue: DispatchQueue, completionHandler: @escaping (RxAlamofireResponse) -> Void) {
+    response(queue: queue) { response in
       completionHandler(response)
     }
   }
 }
 
 extension DownloadRequest: RxAlamofireRequest {
-  func responseWith(completionHandler: @escaping (RxAlamofireResponse) -> Void) {
-    response { response in
+  func responseWith(queue: DispatchQueue, completionHandler: @escaping (RxAlamofireResponse) -> Void) {
+    response(queue: queue) { response in
       completionHandler(response)
     }
   }
 }
 
 internal extension DispatchQueue {
-    static let requestCompletionQueue = DispatchQueue(
+    static let requestCompletionErrorQueue = DispatchQueue(
         label: "rxalamofire.lock.fix",
         qos: .default,
         attributes: [.concurrent]
@@ -717,15 +717,13 @@ public extension Reactive where Base: Alamofire.Session {
       do {
         request = try createRequest(self.base)
         observer.on(.next(request))
-        request.responseWith(completionHandler: { response in
+        request.responseWith(queue: .requestCompletionErrorQueue) { response in
           if let error = response.error {
             observer.on(.error(error))
           } else {
-            DispatchQueue.requestCompletionQueue.async {
-              observer.on(.completed)
-            }
+            observer.on(.completed)
           }
-        })
+        }
 
         if !self.base.startRequestsImmediately {
           _ = request.resume()
