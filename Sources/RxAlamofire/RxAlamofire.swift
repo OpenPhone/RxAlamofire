@@ -713,7 +713,7 @@ public extension Reactive where Base: Alamofire.Session {
           if let error = response.error {
             observer.on(.error(error))
           } else {
-            DispatchQueue.global(qos: .background).async {
+            DispatchQueue.global().async {
               observer.on(.completed)
             }
           }
