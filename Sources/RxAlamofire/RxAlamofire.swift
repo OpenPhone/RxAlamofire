@@ -693,6 +693,14 @@ extension DownloadRequest: RxAlamofireRequest {
   }
 }
 
+internal extension DispatchQueue {
+    static let requestCompletionQueue = DispatchQueue(
+        label: "rxalamofire.lock.fix",
+        qos: .default,
+        attributes: [.concurrent]
+    )
+}
+
 public extension Reactive where Base: Alamofire.Session {
   // MARK: Generic request convenience
 
@@ -713,7 +721,7 @@ public extension Reactive where Base: Alamofire.Session {
           if let error = response.error {
             observer.on(.error(error))
           } else {
-            DispatchQueue.global().async {
+            DispatchQueue.requestCompletionQueue.async {
               observer.on(.completed)
             }
           }
